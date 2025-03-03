@@ -8,22 +8,37 @@ import HeroSection from "./components/homepage/hero-section";
 import Projects from "./components/homepage/projects";
 import Skills from "./components/homepage/skills";
 
-async function getData() {
-  const res = await fetch(`https://dev.to/api/articles?username=${personalData.devUsername}`)
+/**
+ * Fetches blog posts from the DEV.to API.
+ * Filters posts to include only those with a cover image and randomizes the order.
+ */
+async function getBlogs() {
+  try {
+    const response = await fetch(`https://dev.to/api/articles?username=${personalData.devUsername}`, {
+      next: { revalidate: 3600 }, // Cache the data for 1 hour (optional, for ISR)
+    });
 
-  if (!res.ok) {
-    throw new Error('Failed to fetch data')
+    if (!response.ok) {
+      throw new Error("Failed to fetch blog data");
+    }
+
+    const data = await response.json();
+
+    // Filter posts with a cover image and shuffle the array
+    return data
+      .filter((post) => post.cover_image)
+      .sort(() => Math.random() - 0.5);
+  } catch (error) {
+    console.error("Error fetching blogs:", error.message);
+    return []; // Return an empty array in case of failure
   }
+}
 
-  const data = await res.json();
-
-  const filtered = data.filter((item) => item?.cover_image).sort(() => Math.random() - 0.5);
-
-  return filtered;
-};
-
+/**
+ * Home Page Component
+ */
 export default async function Home() {
-  const blogs = await getData();
+  const blogs = await getBlogs();
 
   return (
     <>
@@ -36,5 +51,5 @@ export default async function Home() {
       <Blog blogs={blogs} />
       <ContactSection />
     </>
-  )
-};
+  );
+}
